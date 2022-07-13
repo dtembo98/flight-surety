@@ -50,3 +50,6 @@ input {
 .airline-container {
  
 }
+#passenger-withdraw-status p {
+    color: #0e7fa8;
+}

@@ -144,15 +144,23 @@ export default class Contract {
     p = DOM.p(passengerAddress + "  balance " + passengerBalance + " ETH");
     displayDiv.append(p);
   }
+  addPassengerWithDrawStatusInfoToUI(status, amount) {
+    if (!status) {
+      let displayDiv = DOM.elid("passenger-withdraw-status");
+      let p = DOM.p();
+      p = DOM.p("Withdrawal failed");
+      displayDiv.append(p);
+      return;
+    }
 
-  async registerAirline(airline, airliName, callback) {
-    let self = this;
-    console.log("airline", airline, "airlineName", airliName);
-    await self.flightSuretyApp.methods
-      .registerAirline(airline, airliName)
-      .send({ from: this.firstAirline, gas: 650000 }, (error, result) => {
-        callback(error, result);
-      });
+    let displayDiv = DOM.elid("passenger-withdraw-status");
+    let p = DOM.p();
+    p = DOM.p(
+      " You've successfully withdrawn your flight insurance of  " +
+        amount +
+        " ETH"
+    );
+    displayDiv.append(p);
   }
 
   async registerAirline(airline, airliName, callback) {
@@ -200,7 +208,6 @@ export default class Contract {
     await self.flightSuretyData.methods
       .fund(airline)
       .send({ from: airline, value: fundAmount }, (error, result) => {
-        console.log("checking fi=unds ", error, result);
         if (!error) {
           this.addFundedAirlineInfoToUI(airlineName, airline);
         }
@@ -216,39 +223,36 @@ export default class Contract {
     }
 
     let self = this;
+
     let insuranceAmount = this.web3.utils.toWei(amount, "ether");
+
     let payload = {
       airline: registeredFlight.airline,
       flight: registeredFlight.flight,
       timestamp: registeredFlight.timestamp,
       passenger: this.passengers[0],
     };
-    console.log(
-      "passenger",
-      payload.passenger,
-      amount,
-      insuranceAmount,
-      "the payload ",
-      payload
-    );
 
-    await self.flightSuretyApp.methods
-      .buyInsurance(
-        payload.airline,
-        payload.passenger,
-        payload.flight,
-        payload.timestamp
-      )
-      .send(
-        { from: payload.passenger, value: insuranceAmount },
-        (error, result) => {
-          console.log("results ", error, result);
-          if (!error) {
-            console.log("insurance bought", result);
+    try {
+      await self.flightSuretyApp.methods
+        .buyInsurance(
+          payload.airline,
+          payload.passenger,
+          payload.flight,
+          payload.timestamp
+        )
+        .send(
+          { from: payload.passenger, value: insuranceAmount, gas: 4712388 },
+          (error, result) => {
+            if (!error) {
+              console.log("insurance bought", result);
+            }
+            callback(error, result);
           }
-          callback(error, result);
-        }
-      );
+        );
+    } catch (error) {
+      console.log("Buy Insurance", error);
+    }
   }
 
   async getPassengerBalance(callback) {
@@ -257,23 +261,35 @@ export default class Contract {
 
     await self.flightSuretyApp.methods
       .getPassengerBalance(passenger)
-      .call({ from: passenger }, (error, result) => {
+      .call({ from: passenger }, (error, balance) => {
         if (!error) {
-          console.log("passenger balance", result);
-          this.addPassengerBalanceInfoToUI(passenger, result);
+          console.log(this.web3.utils.fromWei(`${balance}`, "ether"));
+          this.addPassengerBalanceInfoToUI(
+            passenger,
+            this.web3.utils.fromWei(balance.toString(), "ether")
+          );
         }
-        callback(error, result);
+        callback(error, this.web3.utils.fromWei(balance.toString(), "ether"));
       });
   }
   async withDraw(callback) {
     let self = this;
     let passenger = this.passengers[0];
 
+    const amount = await self.flightSuretyApp.methods
+      .getPassengerBalance(passenger)
+      .call({ from: passenger });
+
     await self.flightSuretyApp.methods
       .withDraw()
       .send({ from: passenger }, (error, result) => {
         if (!error) {
           console.log("withdraw successful", result);
+
+          this.addPassengerWithDrawStatusInfoToUI(
+            true,
+            this.web3.utils.fromWei(amount.toString(amount), "ether")
+          );
         }
         callback(error, result);
       });

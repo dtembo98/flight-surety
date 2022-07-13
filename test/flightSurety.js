@@ -193,14 +193,23 @@ contract("Flight Surety Tests", async (accounts) => {
         }
       );
 
+      let balance = await config.flightSuretyApp.getPassengerBalance(
+        passengerAddress
+      );
+
       let eventName = result.logs[0].event;
       let eventPasseger = result.logs[0].args.passenger;
       let eventAmount = result.logs[0].args.insuranceAmount;
-      console.log("tesing ", result.logs[0].args);
+
       // ASSERT
       assert.equal(
         eventName,
         "FlightInsuranceBought",
+        "Passenger should able to buy flight insurance"
+      );
+      assert(
+        balance,
+        insuranceAmount,
         "Passenger should able to buy flight insurance"
       );
       assert.equal(

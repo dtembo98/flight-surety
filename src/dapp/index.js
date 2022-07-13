@@ -40,15 +40,7 @@ import "./flightsurety.css";
         airlineName,
         airlineAddress,
         airlineFunds,
-        (error, result) => {
-          display("Airlines", "Trigger oracles", [
-            {
-              label: "Fund airlines",
-              error: error,
-              value: result.flight + " " + result.timestamp,
-            },
-          ]);
-        }
+        (error, result) => {}
       );
     });
 

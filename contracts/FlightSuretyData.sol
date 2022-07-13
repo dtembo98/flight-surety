@@ -18,12 +18,6 @@ contract FlightSuretyData {
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
 
     uint256 constant MULTI_PARTY_AIRLINE_THERESHOLD = 4;
-    mapping(address => Airline) private registeredAirlines;
-    mapping(address => uint256) private authorizedContracts;
-    mapping(bytes32 => Flight) private flights;
-    mapping(bytes32 => Insurance[]) private boughtInsurances;
-    mapping(address => PassengerAccount) private passengerAccount;
-    mapping(bytes32 => Insurance) private passengerInsurance;
 
     struct Airline {
         bool isRegistered;
@@ -47,6 +41,13 @@ contract FlightSuretyData {
     struct PassengerAccount {
         uint256 balance;
     }
+
+    mapping(address => Airline) private registeredAirlines;
+    mapping(address => uint256) private authorizedContracts;
+    mapping(bytes32 => Flight) private flights;
+    mapping(bytes32 => address[]) private passengerBoughtInsurances;
+    mapping(address => PassengerAccount) private passengerAccount;
+    mapping(bytes32 => Insurance) private passengerInsurances;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -74,16 +75,6 @@ contract FlightSuretyData {
     // Modifiers help avoid duplication of code. They are typically used to validate something
     // before a function is allowed to be executed.
 
-    modifier onlyBuyOnceOffPurchase(bytes32 flightKey) {
-        Insurance[] storage insurances = boughtInsurances[flightKey];
-        for (uint256 i = 0; i < insurances.length; i++) {
-            require(
-                insurances[i].passengerAddress == msg.sender,
-                "Passenger already bought insurance for this flight"
-            );
-        }
-        _;
-    }
     /**
      * @dev Modifier that requires the "operational" boolean variable to be "true"
      *      This is used on all state changing functions to pause the contract in
@@ -285,29 +276,23 @@ contract FlightSuretyData {
         address passenger,
         bytes32 flightkey,
         uint256 insuranceAmount
-    )
-        external
-        requireIsOperational
-        isCallerAuthorized
-        onlyBuyOnceOffPurchase(flightkey)
-    {
-        // emit TestEvent(passenger, flightkey, insuranceAmount);
+    ) external requireIsOperational isCallerAuthorized {
+        bytes32 passengerFlightkey = keccak256(
+            abi.encodePacked(passenger, flightkey)
+        );
 
-        // boughtInsurances[flightkey].push(
-        //     Insurance({
-        //         passengerAddress: passenger,
-        //         flightInsuranceAmount: insuranceAmount
-        //     })
-        // );
+        //come
+        require(
+            passengerInsurances[passengerFlightkey].passengerAddress !=
+                passenger,
+            "Passenger already bought insurance"
+        );
+        emit TestEvent(passenger, passengerFlightkey, insuranceAmount);
 
-        Insurance[] storage insus = boughtInsurances[flightkey];
-        for (uint256 i = 0; i < insus.length; i++) {
-            if (insus[i].passengerAddress == passenger) {
-                revert("Passenger already bought insurance for this flight");
-            }
-        }
-
-        insus.push(Insurance(passenger, insuranceAmount));
+        passengerInsurances[passengerFlightkey].passengerAddress = passenger;
+        passengerInsurances[passengerFlightkey]
+            .insuranceAmount = insuranceAmount;
+        passengerBoughtInsurances[flightkey].push(passenger);
     }
 
     /**
@@ -319,19 +304,27 @@ contract FlightSuretyData {
         requireIsOperational
         isCallerAuthorized
     {
-        Insurance[] storage insurances = boughtInsurances[flightKey];
+        address[] storage insurances = passengerBoughtInsurances[flightKey];
         for (uint256 i = 0; i < insurances.length; i++) {
-            address passengerAddress = insurances[i].passengerAddress;
-            uint256 insuranceAmount = insurances[i].flightInsuranceAmount;
+            address passengerAddress = insurances[i];
+
+            bytes32 passengerFlightkey = keccak256(
+                abi.encodePacked(passengerAddress, flightKey)
+            );
+
+            uint256 insuranceAmount = passengerInsurances[passengerFlightkey]
+                .insuranceAmount;
 
             // calculate passenger withdrawl amount
             uint256 insuranceAmountBenefit = insuranceAmount.mul(3).div(2);
             emit PassengerCreditInfo(passengerAddress, insuranceAmount);
 
             // Credit passenger with insurance payout
-            passengerAccount[passengerAddress] = passengerAccount[
+            passengerAccount[passengerAddress].balance = passengerAccount[
                 passengerAddress
-            ].add(insuranceAmountBenefit);
+            ].balance.add(insuranceAmountBenefit);
+
+            delete passengerInsurances[passengerFlightkey];
         }
     }
 
@@ -342,7 +335,7 @@ contract FlightSuretyData {
         isCallerAuthorized
         returns (uint256)
     {
-        return passengerAccount[passenger];
+        return passengerAccount[passenger].balance;
     }
 
     /**
@@ -356,10 +349,10 @@ contract FlightSuretyData {
         isCallerAuthorized
     {
         //checks
-        uint256 amount = passengerAccount[passengerAddress];
+        uint256 amount = passengerAccount[passengerAddress].balance;
         require(amount > 0, "Insufficient funds");
 
-        passengerAccount[passengerAddress] = 0;
+        passengerAccount[passengerAddress].balance = 0;
         passengerAddress.transfer(amount);
     }
 

@@ -4,12 +4,12 @@ import Config from "./config.json";
 import Web3 from "web3";
 import express from "express";
 
-const STATUS_CODE_UNKNOWN = 20;
-const STATUS_CODE_ON_TIME = 20;
+const STATUS_CODE_UNKNOWN = 0;
+const STATUS_CODE_ON_TIME = 10;
 const STATUS_CODE_LATE_AIRLINE = 20;
-const STATUS_CODE_LATE_WEATHER = 20;
-const STATUS_CODE_LATE_TECHNICAL = 20;
-const STATUS_CODE_LATE_OTHER = 20;
+const STATUS_CODE_LATE_WEATHER = 30;
+const STATUS_CODE_LATE_TECHNICAL = 40;
+const STATUS_CODE_LATE_OTHER = 50;
 
 const fligthStatusCodes = [
   STATUS_CODE_UNKNOWN,

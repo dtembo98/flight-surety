@@ -235,9 +235,6 @@ contract FlightSuretyApp {
             _isFlightRegistered(airlineAddress, flight, timestamp),
             "Flight is not registered."
         );
-        // uint256 insuranceAmount = msg.value;
-
-        // address(flightSuretyData).transfer(msg.value);
 
         flightSuretyData.buy(passengerAddress, generatedFlightKey, msg.value);
         emit FlightInsuranceBought(
@@ -247,7 +244,7 @@ contract FlightSuretyApp {
         );
     }
 
-    function withDraw() payable requireIsOperational {
+    function withDraw() external payable requireIsOperational {
         address passengerAddress = msg.sender;
         flightSuretyData.pay(passengerAddress);
         emit PassengerPaid(passengerAddress);
@@ -335,7 +332,7 @@ contract FlightSuretyApp {
     uint256 public constant REGISTRATION_FEE = 1 ether;
 
     // Number of oracles that must respond for valid status
-    uint256 private constant MIN_RESPONSES = 1;
+    uint256 private constant MIN_RESPONSES = 3;
 
     struct Oracle {
         bool isRegistered;
