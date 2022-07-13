@@ -1,11 +1,12 @@
 body {
-    background-image: url('flight.jpg'); /* Source: iStockPhoto */
+    background-image: url('flight.jpg');
+    /* Source: iStockPhoto */
     background-repeat: no-repeat;
     background-size: cover;
 }
 
 .container {
-    margin-top: 400px;
+    /* margin-top: 400px; */
     background-color: #000;
     opacity: 0.9;
     color: #fff;
@@ -16,6 +17,10 @@ body {
     margin-top: 20px;
 }
 
+
+.top-50 {
+    margin-top: 50px;
+}
 h5 {
     color: #999999;
 }
@@ -37,6 +42,11 @@ label.form {
     font-size: 14px;
     margin-right: 20px;
 }
+
 input {
     margin-right: 30px;
+}
+
+.airline-container {
+ 
 }
